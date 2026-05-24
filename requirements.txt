@@ -1,0 +1,2 @@
+# Yield Pilot — Requirements
+pytest>=7.0.0

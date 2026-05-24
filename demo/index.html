@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Yield Pilot — Multi-Chain Yield Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0a0e17;--surface:#111827;--card:#1a2234;--border:#1e293b;
+  --text:#e2e8f0;--muted:#94a3b8;--accent:#6366f1;--accent2:#8b5cf6;
+  --green:#10b981;--red:#ef4444;--yellow:#f59e0b;--cyan:#06b6d4;
+  --pink:#ec4899;--orange:#f97316;
+}
+body{background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;min-height:100vh;overflow-x:hidden}
+.grid-bg{position:fixed;top:0;left:0;width:100%;height:100%;background-image:radial-gradient(circle at 1px 1px,rgba(99,102,241,.07) 1px,transparent 0);background-size:40px 40px;pointer-events:none;z-index:0}
+.container{max-width:1400px;margin:0 auto;padding:20px;position:relative;z-index:1}
+header{text-align:center;padding:30px 0 20px;position:relative}
+header h1{font-size:2.2rem;font-weight:800;background:linear-gradient(135deg,var(--accent),var(--accent2),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:-.5px}
+header p{color:var(--muted);font-size:.95rem;margin-top:6px}
+.pulse{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--green);margin-right:6px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(16,185,129,.7)}50%{opacity:.8;box-shadow:0 0 0 6px rgba(16,185,129,0)}}
+.live-tag{display:inline-flex;align-items:center;font-size:.75rem;color:var(--green);background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.25);padding:3px 10px;border-radius:20px;margin-top:8px}
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:20px 0}
+.metric{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px 16px;position:relative;overflow:hidden;transition:border-color .3s}
+.metric:hover{border-color:var(--accent)}
+.metric::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--accent),var(--accent2))}
+.metric .label{font-size:.7rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:6px}
+.metric .value{font-size:1.6rem;font-weight:700;color:var(--text)}
+.metric .change{font-size:.75rem;margin-top:4px}
+.metric .change.up{color:var(--green)}
+.metric .change.down{color:var(--red)}
+.charts{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin:14px 0}
+.chart-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px}
+.chart-card h3{font-size:.85rem;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.chart-card h3 span{color:var(--text);font-weight:600}
+.chart-wrap{position:relative;height:280px}
+.heatmap-section{margin:14px 0}
+.heatmap-section h3{font-size:.85rem;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px}
+.heatmap{display:grid;grid-template-columns:120px repeat(3,1fr);gap:4px}
+.hm-header{font-size:.7rem;text-transform:uppercase;color:var(--muted);text-align:center;padding:8px 4px}
+.hm-label{font-size:.78rem;display:flex;align-items:center;padding:10px 8px;color:var(--text);font-weight:500}
+.hm-cell{border-radius:8px;padding:10px;text-align:center;font-size:.78rem;font-weight:600;transition:transform .2s;cursor:default}
+.hm-cell:hover{transform:scale(1.05)}
+.events{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 0}
+.event-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px}
+.event-card h3{font-size:.85rem;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px}
+.event-list{list-style:none;max-height:220px;overflow-y:auto}
+.event-list li{padding:8px 0;border-bottom:1px solid var(--border);font-size:.82rem;display:flex;justify-content:space-between;align-items:center}
+.event-list li:last-child{border:none}
+.event-dot{width:6px;height:6px;border-radius:50%;display:inline-block;margin-right:8px}
+.event-time{color:var(--muted);font-size:.72rem}
+.table-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;margin:14px 0;overflow-x:auto}
+.table-card h3{font-size:.85rem;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px}
+table{width:100%;border-collapse:collapse;font-size:.82rem}
+th{text-align:left;color:var(--muted);font-size:.7rem;text-transform:uppercase;letter-spacing:.8px;padding:8px 12px;border-bottom:1px solid var(--border)}
+td{padding:10px 12px;border-bottom:1px solid rgba(30,41,59,.5)}
+tr:hover td{background:rgba(99,102,241,.04)}
+.badge{display:inline-block;padding:2px 8px;border-radius:6px;font-size:.7rem;font-weight:600}
+.badge-green{background:rgba(16,185,129,.15);color:var(--green)}
+.badge-yellow{background:rgba(245,158,11,.15);color:var(--yellow)}
+.badge-red{background:rgba(239,68,68,.15);color:var(--red)}
+.badge-blue{background:rgba(99,102,241,.15);color:var(--accent)}
+.chain-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+footer{text-align:center;padding:30px 0;color:var(--muted);font-size:.75rem}
+footer a{color:var(--accent);text-decoration:none}
+@media(max-width:900px){.metrics{grid-template-columns:repeat(2,1fr)}.charts,.events{grid-template-columns:1fr}.heatmap{grid-template-columns:100px repeat(3,1fr)}}
+@media(max-width:500px){.metrics{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+<div class="container">
+<header>
+  <h1>YIELD PILOT</h1>
+  <p>Multi-Chain Yield Optimizer & Rebalancing Engine</p>
+  <div class="live-tag"><span class="pulse"></span> Scanning 3 protocols across 3 chains</div>
+</header>
+
+<!-- Metrics -->
+<div class="metrics">
+  <div class="metric"><div class="label">Total Value Locked</div><div class="value" id="m-tvl">$247.3M</div><div class="change up" id="m-tvl-ch">+2.4% 24h</div></div>
+  <div class="metric"><div class="label">Weighted APY</div><div class="value" id="m-apy">5.82%</div><div class="change up" id="m-apy-ch">+0.12% today</div></div>
+  <div class="metric"><div class="label">Gas Saved (30d)</div><div class="value" id="m-gas">$12,847</div><div class="change up" id="m-gas-ch">via batch txs</div></div>
+  <div class="metric"><div class="label">Rebalances (24h)</div><div class="value" id="m-rebal">38</div><div class="change" id="m-rebal-ch" style="color:var(--cyan)">across 14 vaults</div></div>
+</div>
+
+<!-- Charts -->
+<div class="charts">
+  <div class="chart-card">
+    <h3>Yield History <span>— 30 Day Rolling</span></h3>
+    <div class="chart-wrap"><canvas id="yieldChart"></canvas></div>
+  </div>
+  <div class="chart-card">
+    <h3>Portfolio Allocation</h3>
+    <div class="chart-wrap"><canvas id="allocChart"></canvas></div>
+  </div>
+</div>
+
+<!-- Risk Heatmap -->
+<div class="heatmap-section">
+  <h3>Risk Heatmap — Protocols × Chains</h3>
+  <div class="heatmap" id="heatmap"></div>
+</div>
+
+<!-- Events + Top Opportunities -->
+<div class="events">
+  <div class="event-card">
+    <h3>Recent Rebalance Events</h3>
+    <ul class="event-list" id="eventList"></ul>
+  </div>
+  <div class="event-card">
+    <h3>Top Yield Opportunities</h3>
+    <ul class="event-list" id="topOppList"></ul>
+  </div>
+</div>
+
+<!-- Positions Table -->
+<div class="table-card">
+  <h3>Active Positions</h3>
+  <table>
+    <thead><tr><th>Protocol</th><th>Chain</th><th>Asset</th><th>Value</th><th>APY</th><th>PnL</th><th>Risk</th></tr></thead>
+    <tbody id="posTable"></tbody>
+  </table>
+</div>
+
+<footer>Yield Pilot v0.1.0 &middot; Data is simulated for demo purposes &middot; <a href="#">GitHub</a></footer>
+</div>
+
+<script>
+// ── Simulated Data ──────────────────────────────────────────────
+const CHAINS=['Ethereum','Arbitrum','Base'];
+const PROTOCOLS=['Aave','Compound','Yearn'];
+const ASSETS=['USDC','ETH','DAI','WBTC'];
+const RISK_LEVELS=['Low','Medium','High'];
+
+function rand(min,max){return Math.random()*(max-min)+min}
+function fmt(n,d=2){return n.toFixed(d)}
+function fmtUSD(n){if(n>=1e6)return '$'+(n/1e6).toFixed(1)+'M';if(n>=1e3)return '$'+(n/1e3).toFixed(0)+'K';return '$'+n.toFixed(0)}
+
+// Generate yield history
+const DAYS=30;
+const yieldHistory={aave:[],compound:[],yearn:[]};
+let aaveBase=3.8,compBase=4.1,yearnBase=5.5;
+for(let i=0;i<DAYS;i++){
+  aaveBase+=rand(-0.15,0.18);compBase+=rand(-0.12,0.15);yearnBase+=rand(-0.2,0.22);
+  yieldHistory.aave.push(Math.max(1,aaveBase));
+  yieldHistory.compound.push(Math.max(1,compBase));
+  yieldHistory.yearn.push(Math.max(2,yearnBase));
+}
+
+// ── Yield History Chart ─────────────────────────────────────────
+const yCtx=document.getElementById('yieldChart').getContext('2d');
+const labels=Array.from({length:DAYS},(_,i)=>`Day ${i+1}`);
+const yieldChart=new Chart(yCtx,{
+  type:'line',
+  data:{
+    labels,
+    datasets:[
+      {label:'Aave',data:yieldHistory.aave,borderColor:'#6366f1',backgroundColor:'rgba(99,102,241,.08)',fill:true,tension:.4,pointRadius:0,borderWidth:2},
+      {label:'Compound',data:yieldHistory.compound,borderColor:'#06b6d4',backgroundColor:'rgba(6,182,212,.06)',fill:true,tension:.4,pointRadius:0,borderWidth:2},
+      {label:'Yearn',data:yieldHistory.yearn,borderColor:'#ec4899',backgroundColor:'rgba(236,72,153,.06)',fill:true,tension:.4,pointRadius:0,borderWidth:2},
+    ]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{position:'top',labels:{color:'#94a3b8',usePointStyle:true,pointStyle:'circle',padding:16,font:{size:11}}}},
+    scales:{
+      x:{grid:{color:'rgba(30,41,59,.6)'},ticks:{color:'#94a3b8',font:{size:10},maxTicksLimit:8}},
+      y:{grid:{color:'rgba(30,41,59,.6)'},ticks:{color:'#94a3b8',font:{size:10},callback:v=>v.toFixed(1)+'%'},title:{display:true,text:'APY %',color:'#94a3b8'}}
+    },
+    interaction:{intersect:false,mode:'index'}
+  }
+});
+
+// ── Allocation Donut ────────────────────────────────────────────
+const aCtx=document.getElementById('allocChart').getContext('2d');
+new Chart(aCtx,{
+  type:'doughnut',
+  data:{
+    labels:['Aave USDC','Yearn ETH','Compound DAI','Aave ARB USDC','Yearn ARB ETH','Aave Base USDC'],
+    datasets:[{
+      data:[28,22,18,14,10,8],
+      backgroundColor:['#6366f1','#ec4899','#06b6d4','#8b5cf6','#f59e0b','#10b981'],
+      borderColor:'#1a2234',borderWidth:3,hoverOffset:8
+    }]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,cutout:'65%',
+    plugins:{legend:{position:'right',labels:{color:'#94a3b8',usePointStyle:true,pointStyle:'circle',padding:10,font:{size:10.5}}}}
+  }
+});
+
+// ── Risk Heatmap ────────────────────────────────────────────────
+const riskData=[
+  {proto:'Aave',chain:'Ethereum',risk:0.12},{proto:'Aave',chain:'Arbitrum',risk:0.22},{proto:'Aave',chain:'Base',risk:0.28},
+  {proto:'Compound',chain:'Ethereum',risk:0.18},{proto:'Compound',chain:'Arbitrum',risk:0.30},{proto:'Compound',chain:'Base',risk:0.35},
+  {proto:'Yearn',chain:'Ethereum',risk:0.25},{proto:'Yearn',chain:'Arbitrum',risk:0.32},{proto:'Yearn',chain:'Base',risk:0.42},
+];
+function riskColor(r){if(r<.2)return'rgba(16,185,129,.25)';if(r<.3)return'rgba(245,158,11,.25)';return'rgba(239,68,68,.25)'}
+function riskTextColor(r){if(r<.2)return'#10b981';if(r<.3)return'#f59e0b';return'#ef4444'}
+const hm=document.getElementById('heatmap');
+let hmHTML='<div class="hm-header"></div>';
+CHAINS.forEach(c=>hmHTML+=`<div class="hm-header">${c}</div>`);
+PROTOCOLS.forEach(p=>{
+  hmHTML+=`<div class="hm-label">${p}</div>`;
+  CHAINS.forEach(c=>{
+    const d=riskData.find(r=>r.proto===p&&r.chain===c);
+    const r=d?d.risk:0.5;
+    hmHTML+=`<div class="hm-cell" style="background:${riskColor(r)};color:${riskTextColor(r)}">${(r*100).toFixed(0)}%</div>`;
+  });
+});
+hm.innerHTML=hmHTML;
+
+// ── Events ──────────────────────────────────────────────────────
+const eventTypes=[
+  {text:'Rebalanced USDC → Yearn (Ethereum)',color:'#6366f1',chain:'ETH'},
+  {text:'Swapped DAI→USDC on Arbitrum',color:'#06b6d4',chain:'ARB'},
+  {text:'Claimed 2.3 AAVE rewards',color:'#10b981',chain:'ETH'},
+  {text:'Migrated ETH position to Base',color:'#f59e0b',chain:'BASE'},
+  {text:'Gas-optimal batch: 4 txs on Arbitrum',color:'#8b5cf6',chain:'ARB'},
+  {text:'Risk alert: Compound utilization >85%',color:'#ef4444',chain:'ETH'},
+  {text:'APY spike detected: Yearn USDC 7.2%',color:'#ec4899',chain:'ETH'},
+  {text:'Rebalanced WBTC → Aave (Ethereum)',color:'#6366f1',chain:'ETH'},
+  {text:'Auto-compound: 0.8 ETH yield',color:'#10b981',chain:'ARB'},
+  {text:'New vault detected: Aave Base DAI 6.1%',color:'#06b6d4',chain:'BASE'},
+];
+const eList=document.getElementById('eventList');
+function renderEvents(){
+  eList.innerHTML='';
+  const shuffled=[...eventTypes].sort(()=>Math.random()-.5).slice(0,7);
+  shuffled.forEach((e,i)=>{
+    const t=new Date(Date.now()-i*rand(60000,600000));
+    const timeStr=t.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+    eList.innerHTML+=`<li><span><span class="event-dot" style="background:${e.color}"></span>${e.text}</span><span class="event-time">${timeStr}</span></li>`;
+  });
+}
+renderEvents();
+setInterval(renderEvents,8000);
+
+// ── Top Opportunities ───────────────────────────────────────────
+const opps=[
+  {proto:'Yearn',chain:'Arbitrum',asset:'USDC',apy:6.82,tvl:'$312M',risk:'Med'},
+  {proto:'Yearn',chain:'Ethereum',asset:'DAI',apy:5.94,tvl:'$890M',risk:'Low'},
+  {proto:'Aave',chain:'Base',asset:'USDC',apy:5.47,tvl:'$215M',risk:'Med'},
+  {proto:'Compound',chain:'Ethereum',asset:'USDC',apy:4.31,tvl:'$1.2B',risk:'Low'},
+  {proto:'Aave',chain:'Arbitrum',asset:'ETH',apy:3.88,tvl:'$445M',risk:'Low'},
+  {proto:'Yearn',chain:'Arbitrum',asset:'ETH',apy:4.12,tvl:'$178M',risk:'Med'},
+  {proto:'Compound',chain:'Base',asset:'USDC',apy:4.78,tvl:'$98M',risk:'High'},
+];
+const oList=document.getElementById('topOppList');
+opps.forEach(o=>{
+  const riskBadge=o.risk==='Low'?'badge-green':o.risk==='Med'?'badge-yellow':'badge-red';
+  oList.innerHTML+=`<li><span><strong>${o.proto}</strong> · ${o.chain} · ${o.asset} &nbsp;<span class="badge ${riskBadge}">${o.risk}</span></span><span style="color:var(--green);font-weight:600">${o.apy.toFixed(2)}%</span></li>`;
+});
+
+// ── Positions Table ─────────────────────────────────────────────
+const positions=[
+  {proto:'Aave',chain:'Ethereum',asset:'USDC',value:50230,apy:3.92,pnl:230,risk:'Low'},
+  {proto:'Yearn',chain:'Ethereum',asset:'ETH',value:28450,apy:3.45,pnl:1450,risk:'Med'},
+  {proto:'Compound',chain:'Ethereum',asset:'DAI',value:30120,apy:4.08,pnl:120,risk:'Low'},
+  {proto:'Aave',chain:'Arbitrum',asset:'USDC',value:20080,apy:4.61,pnl:80,risk:'Low'},
+  {proto:'Yearn',chain:'Arbitrum',asset:'ETH',value:14200,apy:3.98,pnl:700,risk:'Med'},
+  {proto:'Aave',chain:'Base',asset:'USDC',value:10050,apy:5.32,pnl:50,risk:'Med'},
+  {proto:'Yearn',chain:'Ethereum',asset:'WBTC',value:8600,apy:1.95,pnl:-120,risk:'Med'},
+];
+const chainColors={Ethereum:'#627eea',Arbitrum:'#28a0f0',Base:'#0052ff'};
+const posBody=document.getElementById('posTable');
+positions.forEach(p=>{
+  const riskBadge=p.risk==='Low'?'badge-green':p.risk==='Med'?'badge-yellow':'badge-red';
+  const pnlColor=p.pnl>=0?'var(--green)':'var(--red)';
+  const pnlSign=p.pnl>=0?'+':'';
+  posBody.innerHTML+=`<tr>
+    <td>${p.proto}</td>
+    <td><span class="chain-dot" style="background:${chainColors[p.chain]}"></span>${p.chain}</td>
+    <td>${p.asset}</td>
+    <td>${fmtUSD(p.value)}</td>
+    <td>${p.apy.toFixed(2)}%</td>
+    <td style="color:${pnlColor}">${pnlSign}$${Math.abs(p.pnl).toLocaleString()}</td>
+    <td><span class="badge ${riskBadge}">${p.risk}</span></td>
+  </tr>`;
+});
+
+// ── Live Metric Updates ─────────────────────────────────────────
+let tvl=247.3,apy=5.82,gasSaved=12847,rebalances=38;
+setInterval(()=>{
+  tvl+=rand(-0.5,0.6);apy+=rand(-0.03,0.035);gasSaved+=rand(0,15);rebalances+=Math.random()>.7?1:0;
+  document.getElementById('m-tvl').textContent='$'+tvl.toFixed(1)+'M';
+  document.getElementById('m-apy').textContent=apy.toFixed(2)+'%';
+  document.getElementById('m-gas').textContent='$'+Math.round(gasSaved).toLocaleString();
+  document.getElementById('m-rebal').textContent=rebalances;
+
+  const tvlCh=rand(-0.5,0.8);const apyCh=rand(-0.05,0.06);
+  const tvlEl=document.getElementById('m-tvl-ch');tvlEl.textContent=(tvlCh>=0?'+':'')+tvlCh.toFixed(1)+'% 24h';tvlEl.className='change '+(tvlCh>=0?'up':'down');
+  const apyEl=document.getElementById('m-apy-ch');apyEl.textContent=(apyCh>=0?'+':'')+apyCh.toFixed(2)+'% today';apyEl.className='change '+(apyCh>=0?'up':'down');
+},3000);
+
+// Push new data points to yield chart periodically
+setInterval(()=>{
+  aaveBase+=rand(-0.12,0.15);compBase+=rand(-0.1,0.12);yearnBase+=rand(-0.15,0.18);
+  yieldChart.data.datasets[0].data.push(Math.max(1,aaveBase));
+  yieldChart.data.datasets[1].data.push(Math.max(1,compBase));
+  yieldChart.data.datasets[2].data.push(Math.max(2,yearnBase));
+  yieldChart.data.labels.push('');
+  if(yieldChart.data.labels.length>60){
+    yieldChart.data.labels.shift();
+    yieldChart.data.datasets.forEach(d=>d.data.shift());
+  }
+  yieldChart.update('none');
+},5000);
+</script>
+</body>
+</html>
