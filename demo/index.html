@@ -3,312 +3,723 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Yield Pilot — Multi-Chain Yield Dashboard</title>
+<title>Yield Pilot — Interactive Yield Optimizer</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
-  --bg:#0a0e17;--surface:#111827;--card:#1a2234;--border:#1e293b;
-  --text:#e2e8f0;--muted:#94a3b8;--accent:#6366f1;--accent2:#8b5cf6;
-  --green:#10b981;--red:#ef4444;--yellow:#f59e0b;--cyan:#06b6d4;
-  --pink:#ec4899;--orange:#f97316;
+  --bg:#070b14;--surface:#0d1321;--card:rgba(17,24,39,.7);--card-solid:#111827;
+  --border:rgba(99,102,241,.12);--border-hover:rgba(99,102,241,.35);
+  --text:#e2e8f0;--muted:#64748b;--accent:#6366f1;--accent2:#8b5cf6;
+  --green:#10b981;--red:#ef4444;--yellow:#f59e0b;--cyan:#06b6d4;--pink:#ec4899;
 }
-body{background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;min-height:100vh;overflow-x:hidden}
-.grid-bg{position:fixed;top:0;left:0;width:100%;height:100%;background-image:radial-gradient(circle at 1px 1px,rgba(99,102,241,.07) 1px,transparent 0);background-size:40px 40px;pointer-events:none;z-index:0}
-.container{max-width:1400px;margin:0 auto;padding:20px;position:relative;z-index:1}
-header{text-align:center;padding:30px 0 20px;position:relative}
-header h1{font-size:2.2rem;font-weight:800;background:linear-gradient(135deg,var(--accent),var(--accent2),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:-.5px}
-header p{color:var(--muted);font-size:.95rem;margin-top:6px}
-.pulse{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--green);margin-right:6px;animation:pulse 2s infinite}
-@keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(16,185,129,.7)}50%{opacity:.8;box-shadow:0 0 0 6px rgba(16,185,129,0)}}
-.live-tag{display:inline-flex;align-items:center;font-size:.75rem;color:var(--green);background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.25);padding:3px 10px;border-radius:20px;margin-top:8px}
-.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:20px 0}
-.metric{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px 16px;position:relative;overflow:hidden;transition:border-color .3s}
-.metric:hover{border-color:var(--accent)}
-.metric::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--accent),var(--accent2))}
-.metric .label{font-size:.7rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:6px}
-.metric .value{font-size:1.6rem;font-weight:700;color:var(--text)}
-.metric .change{font-size:.75rem;margin-top:4px}
-.metric .change.up{color:var(--green)}
-.metric .change.down{color:var(--red)}
-.charts{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin:14px 0}
-.chart-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px}
-.chart-card h3{font-size:.85rem;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px;display:flex;align-items:center;gap:8px}
-.chart-card h3 span{color:var(--text);font-weight:600}
-.chart-wrap{position:relative;height:280px}
-.heatmap-section{margin:14px 0}
-.heatmap-section h3{font-size:.85rem;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px}
-.heatmap{display:grid;grid-template-columns:120px repeat(3,1fr);gap:4px}
-.hm-header{font-size:.7rem;text-transform:uppercase;color:var(--muted);text-align:center;padding:8px 4px}
-.hm-label{font-size:.78rem;display:flex;align-items:center;padding:10px 8px;color:var(--text);font-weight:500}
-.hm-cell{border-radius:8px;padding:10px;text-align:center;font-size:.78rem;font-weight:600;transition:transform .2s;cursor:default}
-.hm-cell:hover{transform:scale(1.05)}
-.events{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 0}
-.event-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px}
-.event-card h3{font-size:.85rem;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px}
-.event-list{list-style:none;max-height:220px;overflow-y:auto}
-.event-list li{padding:8px 0;border-bottom:1px solid var(--border);font-size:.82rem;display:flex;justify-content:space-between;align-items:center}
-.event-list li:last-child{border:none}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;min-height:100vh;overflow-x:hidden;line-height:1.5}
+
+/* Animated background orbs */
+.orbs{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;overflow:hidden}
+.orb{position:absolute;border-radius:50%;filter:blur(80px);opacity:.12;animation:float 20s ease-in-out infinite}
+.orb:nth-child(1){width:400px;height:400px;background:#6366f1;top:-100px;left:-100px;animation-delay:0s}
+.orb:nth-child(2){width:350px;height:350px;background:#8b5cf6;bottom:-80px;right:-80px;animation-delay:-7s}
+.orb:nth-child(3){width:300px;height:300px;background:#ec4899;top:50%;left:50%;animation-delay:-14s}
+@keyframes float{0%,100%{transform:translate(0,0) scale(1)}25%{transform:translate(50px,-30px) scale(1.05)}50%{transform:translate(-20px,40px) scale(.95)}75%{transform:translate(30px,20px) scale(1.02)}}
+
+.container{max-width:1200px;margin:0 auto;padding:20px;position:relative;z-index:1}
+
+/* Header */
+header{text-align:center;padding:40px 0 30px}
+header h1{font-size:2.8rem;font-weight:800;background:linear-gradient(135deg,var(--accent),var(--accent2),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:-1px}
+header .sub{color:var(--muted);font-size:1rem;margin-top:8px;max-width:500px;margin-left:auto;margin-right:auto}
+.pulse-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--green);margin-right:6px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(16,185,129,.6)}50%{opacity:.7;box-shadow:0 0 0 8px rgba(16,185,129,0)}}
+
+/* Navigation */
+.nav{display:flex;gap:8px;justify-content:center;margin:20px 0 30px;flex-wrap:wrap}
+.nav-btn{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 20px;color:var(--muted);font-size:.85rem;cursor:pointer;transition:all .3s;backdrop-filter:blur(12px);font-family:inherit}
+.nav-btn:hover,.nav-btn.active{color:var(--text);border-color:var(--accent);background:rgba(99,102,241,.1)}
+
+/* Section */
+.section{display:none;animation:fadeIn .4s ease}
+.section.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* Glass card */
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px;backdrop-filter:blur(16px);transition:border-color .3s,box-shadow .3s}
+.card:hover{border-color:var(--border-hover);box-shadow:0 0 30px rgba(99,102,241,.06)}
+.card h3{font-size:.8rem;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin-bottom:16px}
+
+/* Grid layouts */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+@media(max-width:768px){.grid-2,.grid-3{grid-template-columns:1fr}}
+
+/* Toggle buttons */
+.toggle-group{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}
+.toggle{padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:.82rem;transition:all .25s;font-family:inherit}
+.toggle.on{background:rgba(99,102,241,.15);border-color:var(--accent);color:var(--accent);box-shadow:0 0 12px rgba(99,102,241,.15)}
+.toggle:hover{border-color:var(--accent)}
+
+/* Range slider */
+.range-wrap{margin:14px 0}
+.range-wrap label{display:flex;justify-content:space-between;font-size:.82rem;color:var(--muted);margin-bottom:6px}
+.range-wrap label span{color:var(--text);font-weight:600}
+input[type=range]{width:100%;height:6px;-webkit-appearance:none;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:3px;outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--text);border:3px solid var(--accent);cursor:pointer;transition:transform .2s}
+input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.2)}
+
+/* Select */
+select{background:var(--card-solid);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-size:.85rem;width:100%;cursor:pointer;font-family:inherit;outline:none}
+select:focus{border-color:var(--accent)}
+
+/* Action button */
+.btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:10px;padding:12px 28px;color:#fff;font-size:.9rem;font-weight:600;cursor:pointer;transition:all .3s;font-family:inherit;position:relative;overflow:hidden}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 25px rgba(99,102,241,.3)}
+.btn-primary:active{transform:translateY(0)}
+.btn-primary.loading{pointer-events:none;opacity:.7}
+.btn-primary.loading::after{content:'';position:absolute;width:20px;height:20px;border:2px solid transparent;border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;top:50%;left:50%;margin:-10px 0 0 -10px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.btn-secondary{background:transparent;border:1px solid var(--border);border-radius:10px;padding:12px 28px;color:var(--text);font-size:.9rem;cursor:pointer;transition:all .3s;font-family:inherit}
+.btn-secondary:hover{border-color:var(--accent);background:rgba(99,102,241,.05)}
+
+/* Results */
+.result-box{background:rgba(99,102,241,.05);border:1px solid rgba(99,102,241,.2);border-radius:12px;padding:20px;margin-top:16px;display:none;animation:fadeIn .5s ease}
+.result-box.show{display:block}
+.result-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+@media(max-width:600px){.result-metrics{grid-template-columns:1fr}}
+.result-metric{text-align:center;padding:12px}
+.result-metric .val{font-size:1.5rem;font-weight:700;color:var(--accent)}
+.result-metric .lbl{font-size:.7rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-top:4px}
+
+/* Chart container */
+.chart-container{position:relative;height:250px;margin-top:12px}
+
+/* Toast */
+.toast{position:fixed;bottom:30px;right:30px;background:var(--card-solid);border:1px solid var(--border);border-radius:12px;padding:14px 20px;color:var(--text);font-size:.85rem;z-index:100;transform:translateY(100px);opacity:0;transition:all .4s;backdrop-filter:blur(16px);max-width:320px}
+.toast.show{transform:translateY(0);opacity:1}
+.toast .toast-icon{margin-right:8px}
+
+/* Allocation editor */
+.alloc-row{display:flex;align-items:center;gap:12px;margin:10px 0}
+.alloc-row label{min-width:100px;font-size:.82rem;color:var(--muted)}
+.alloc-row input[type=range]{flex:1}
+.alloc-row .val{min-width:50px;text-align:right;font-size:.85rem;font-weight:600;color:var(--text)}
+
+/* Risk detail panel */
+.risk-detail{display:none;animation:fadeIn .3s ease}
+.risk-detail.show{display:block}
+.risk-bar{height:8px;border-radius:4px;background:var(--surface);overflow:hidden;margin:6px 0}
+.risk-bar-fill{height:100%;border-radius:4px;transition:width .6s ease}
+
+/* Event feed */
+.event-item{padding:10px 0;border-bottom:1px solid var(--border);font-size:.82rem;display:flex;justify-content:space-between;align-items:center;cursor:pointer;transition:background .2s}
+.event-item:hover{background:rgba(99,102,241,.04);border-radius:8px;padding-left:8px}
 .event-dot{width:6px;height:6px;border-radius:50%;display:inline-block;margin-right:8px}
 .event-time{color:var(--muted);font-size:.72rem}
-.table-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;margin:14px 0;overflow-x:auto}
-.table-card h3{font-size:.85rem;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px}
-table{width:100%;border-collapse:collapse;font-size:.82rem}
-th{text-align:left;color:var(--muted);font-size:.7rem;text-transform:uppercase;letter-spacing:.8px;padding:8px 12px;border-bottom:1px solid var(--border)}
-td{padding:10px 12px;border-bottom:1px solid rgba(30,41,59,.5)}
-tr:hover td{background:rgba(99,102,241,.04)}
-.badge{display:inline-block;padding:2px 8px;border-radius:6px;font-size:.7rem;font-weight:600}
-.badge-green{background:rgba(16,185,129,.15);color:var(--green)}
-.badge-yellow{background:rgba(245,158,11,.15);color:var(--yellow)}
-.badge-red{background:rgba(239,68,68,.15);color:var(--red)}
-.badge-blue{background:rgba(99,102,241,.15);color:var(--accent)}
-.chain-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
-footer{text-align:center;padding:30px 0;color:var(--muted);font-size:.75rem}
+.event-detail{display:none;background:rgba(99,102,241,.04);border-radius:8px;padding:12px;margin-top:6px;font-size:.78rem;color:var(--muted);line-height:1.6}
+.event-detail.show{display:block;animation:fadeIn .3s ease}
+
+/* Filter tabs */
+.filter-tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.filter-tab{padding:6px 12px;border-radius:6px;font-size:.75rem;cursor:pointer;border:1px solid var(--border);color:var(--muted);transition:all .2s;font-family:inherit;background:transparent}
+.filter-tab.active{border-color:var(--accent);color:var(--accent);background:rgba(99,102,241,.1)}
+
+/* Comparison */
+.compare-grid{display:grid;grid-template-columns:1fr auto 1fr;gap:16px;align-items:start;margin-top:14px}
+@media(max-width:600px){.compare-grid{grid-template-columns:1fr}.compare-arrow{transform:rotate(90deg)}}
+.compare-arrow{color:var(--accent);font-size:1.5rem;padding-top:40px;text-align:center}
+
+/* Footer */
+footer{text-align:center;padding:40px 0 20px;color:var(--muted);font-size:.75rem}
 footer a{color:var(--accent);text-decoration:none}
-@media(max-width:900px){.metrics{grid-template-columns:repeat(2,1fr)}.charts,.events{grid-template-columns:1fr}.heatmap{grid-template-columns:100px repeat(3,1fr)}}
-@media(max-width:500px){.metrics{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
-<div class="grid-bg"></div>
+<div class="orbs"><div class="orb"></div><div class="orb"></div><div class="orb"></div></div>
+
 <div class="container">
 <header>
   <h1>YIELD PILOT</h1>
-  <p>Multi-Chain Yield Optimizer & Rebalancing Engine</p>
-  <div class="live-tag"><span class="pulse"></span> Scanning 3 protocols across 3 chains</div>
+  <p class="sub">Multi-chain yield optimizer with automated rebalancing. Try it below.</p>
+  <div style="margin-top:10px"><span class="pulse-dot"></span><span style="font-size:.78rem;color:var(--green)">Simulation Mode — No real funds at risk</span></div>
 </header>
 
-<!-- Metrics -->
-<div class="metrics">
-  <div class="metric"><div class="label">Total Value Locked</div><div class="value" id="m-tvl">$247.3M</div><div class="change up" id="m-tvl-ch">+2.4% 24h</div></div>
-  <div class="metric"><div class="label">Weighted APY</div><div class="value" id="m-apy">5.82%</div><div class="change up" id="m-apy-ch">+0.12% today</div></div>
-  <div class="metric"><div class="label">Gas Saved (30d)</div><div class="value" id="m-gas">$12,847</div><div class="change up" id="m-gas-ch">via batch txs</div></div>
-  <div class="metric"><div class="label">Rebalances (24h)</div><div class="value" id="m-rebal">38</div><div class="change" id="m-rebal-ch" style="color:var(--cyan)">across 14 vaults</div></div>
-</div>
+<nav class="nav">
+  <button class="nav-btn active" onclick="showSection('builder')">Strategy Builder</button>
+  <button class="nav-btn" onclick="showSection('simulator')">Yield Simulator</button>
+  <button class="nav-btn" onclick="showSection('rebalance')">Rebalance Playground</button>
+  <button class="nav-btn" onclick="showSection('risk')">Risk Explorer</button>
+  <button class="nav-btn" onclick="showSection('feed')">Activity Feed</button>
+</nav>
 
-<!-- Charts -->
-<div class="charts">
-  <div class="chart-card">
-    <h3>Yield History <span>— 30 Day Rolling</span></h3>
-    <div class="chart-wrap"><canvas id="yieldChart"></canvas></div>
+<!-- ═══ STRATEGY BUILDER ═══ -->
+<div id="sec-builder" class="section active">
+  <div class="grid-2">
+    <div class="card">
+      <h3>Configure Strategy</h3>
+      <p style="font-size:.82rem;color:var(--muted);margin-bottom:14px">Select protocols, chains, and risk tolerance. Click Optimize to find the best allocation.</p>
+      
+      <label style="font-size:.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Protocols</label>
+      <div class="toggle-group" id="proto-toggles">
+        <button class="toggle on" data-val="aave" onclick="toggleBtn(this)">Aave</button>
+        <button class="toggle on" data-val="compound" onclick="toggleBtn(this)">Compound</button>
+        <button class="toggle on" data-val="yearn" onclick="toggleBtn(this)">Yearn</button>
+      </div>
+      
+      <label style="font-size:.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:10px;display:block">Chains</label>
+      <div class="toggle-group" id="chain-toggles">
+        <button class="toggle on" data-val="ethereum" onclick="toggleBtn(this)">Ethereum</button>
+        <button class="toggle on" data-val="arbitrum" onclick="toggleBtn(this)">Arbitrum</button>
+        <button class="toggle on" data-val="base" onclick="toggleBtn(this)">Base</button>
+      </div>
+      
+      <div class="range-wrap" style="margin-top:16px">
+        <label>Risk Tolerance <span id="risk-val">Balanced</span></label>
+        <input type="range" min="1" max="5" value="3" id="risk-slider" oninput="updateRiskLabel()">
+      </div>
+      
+      <div class="range-wrap">
+        <label>Min Target APY <span id="min-apy-val">2.0%</span></label>
+        <input type="range" min="0.5" max="10" step="0.1" value="2" id="min-apy" oninput="document.getElementById('min-apy-val').textContent=this.value+'%'">
+      </div>
+      
+      <button class="btn-primary" style="width:100%;margin-top:14px" id="optimize-btn" onclick="runOptimizer()">⚡ Optimize Strategy</button>
+    </div>
+    
+    <div class="card">
+      <h3>Optimal Allocation</h3>
+      <div id="builder-result" style="min-height:280px;display:flex;align-items:center;justify-content:center">
+        <p style="color:var(--muted);font-size:.85rem;text-align:center">Configure your strategy and click <strong>Optimize</strong> to see results.</p>
+      </div>
+      <div id="builder-chart-wrap" style="display:none">
+        <div class="chart-container"><canvas id="builderChart"></canvas></div>
+      </div>
+    </div>
   </div>
-  <div class="chart-card">
-    <h3>Portfolio Allocation</h3>
-    <div class="chart-wrap"><canvas id="allocChart"></canvas></div>
+  
+  <div id="builder-details" class="result-box" style="margin-top:16px">
+    <div class="result-metrics" id="builder-metrics"></div>
+    <div class="chart-container" style="height:200px"><canvas id="builderHistChart"></canvas></div>
   </div>
 </div>
 
-<!-- Risk Heatmap -->
-<div class="heatmap-section">
-  <h3>Risk Heatmap — Protocols × Chains</h3>
-  <div class="heatmap" id="heatmap"></div>
-</div>
-
-<!-- Events + Top Opportunities -->
-<div class="events">
-  <div class="event-card">
-    <h3>Recent Rebalance Events</h3>
-    <ul class="event-list" id="eventList"></ul>
+<!-- ═══ YIELD SIMULATOR ═══ -->
+<div id="sec-simulator" class="section">
+  <div class="grid-2">
+    <div class="card">
+      <h3>Simulate Earnings</h3>
+      
+      <div class="range-wrap">
+        <label>Deposit Amount <span id="deposit-val">$50,000</span></label>
+        <input type="range" min="1000" max="1000000" step="1000" value="50000" id="deposit-slider" oninput="updateSimulator()">
+      </div>
+      
+      <label style="font-size:.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px">Asset</label>
+      <div class="toggle-group" id="asset-toggles">
+        <button class="toggle on" data-val="USDC" onclick="selectAsset(this)">USDC</button>
+        <button class="toggle" data-val="ETH" onclick="selectAsset(this)">ETH</button>
+        <button class="toggle" data-val="DAI" onclick="selectAsset(this)">DAI</button>
+        <button class="toggle" data-val="WBTC" onclick="selectAsset(this)">WBTC</button>
+      </div>
+      
+      <label style="font-size:.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:10px;display:block">Protocol</label>
+      <select id="sim-protocol" onchange="updateSimulator()">
+        <option value="aave">Aave</option>
+        <option value="compound">Compound</option>
+        <option value="yearn">Yearn</option>
+      </select>
+      
+      <div class="range-wrap" style="margin-top:14px">
+        <label>Time Horizon <span id="time-val">12 months</span></label>
+        <input type="range" min="1" max="36" value="12" id="time-slider" oninput="updateSimulator()">
+      </div>
+    </div>
+    
+    <div class="card">
+      <h3>Projected Earnings</h3>
+      <div id="sim-results" style="text-align:center;padding:20px 0">
+        <div style="font-size:2.4rem;font-weight:800;color:var(--green)" id="sim-total">$0</div>
+        <div style="font-size:.82rem;color:var(--muted);margin-top:4px">Total earnings over <span id="sim-months">12</span> months</div>
+        
+        <div class="result-metrics" style="margin-top:20px">
+          <div class="result-metric"><div class="val" id="sim-daily">$0</div><div class="lbl">Daily</div></div>
+          <div class="result-metric"><div class="val" id="sim-monthly">$0</div><div class="lbl">Monthly</div></div>
+          <div class="result-metric"><div class="val" id="sim-apy">0%</div><div class="lbl">APY</div></div>
+        </div>
+      </div>
+      <div class="chart-container"><canvas id="simChart"></canvas></div>
+    </div>
   </div>
-  <div class="event-card">
-    <h3>Top Yield Opportunities</h3>
-    <ul class="event-list" id="topOppList"></ul>
+</div>
+
+<!-- ═══ REBALANCE PLAYGROUND ═══ -->
+<div id="sec-rebalance" class="section">
+  <div class="card" style="margin-bottom:16px">
+    <h3>Current Portfolio</h3>
+    <div class="grid-2">
+      <div class="chart-container" style="height:220px"><canvas id="currentAllocChart"></canvas></div>
+      <div>
+        <div class="alloc-row"><label>Aave ETH</label><input type="range" min="0" max="100" value="30" oninput="updateAlloc()"><span class="val">30%</span></div>
+        <div class="alloc-row"><label>Yearn USDC</label><input type="range" min="0" max="100" value="25" oninput="updateAlloc()"><span class="val">25%</span></div>
+        <div class="alloc-row"><label>Compound DAI</label><input type="range" min="0" max="100" value="20" oninput="updateAlloc()"><span class="val">20%</span></div>
+        <div class="alloc-row"><label>Aave ARB</label><input type="range" min="0" max="100" value="15" oninput="updateAlloc()"><span class="val">15%</span></div>
+        <div class="alloc-row"><label>Yearn Base</label><input type="range" min="0" max="100" value="10" oninput="updateAlloc()"><span class="val">10%</span></div>
+      </div>
+    </div>
+    <button class="btn-primary" style="margin-top:14px" onclick="simulateRebalance()">🔄 Simulate Rebalance</button>
+  </div>
+  
+  <div id="rebalance-result" class="result-box">
+    <div class="compare-grid">
+      <div class="card" style="text-align:center">
+        <h3>Before</h3>
+        <div class="chart-container" style="height:180px"><canvas id="beforeChart"></canvas></div>
+      </div>
+      <div class="compare-arrow">→</div>
+      <div class="card" style="text-align:center">
+        <h3>After</h3>
+        <div class="chart-container" style="height:180px"><canvas id="afterChart"></canvas></div>
+      </div>
+    </div>
+    <div class="result-metrics" style="margin-top:14px" id="rebal-metrics"></div>
   </div>
 </div>
 
-<!-- Positions Table -->
-<div class="table-card">
-  <h3>Active Positions</h3>
-  <table>
-    <thead><tr><th>Protocol</th><th>Chain</th><th>Asset</th><th>Value</th><th>APY</th><th>PnL</th><th>Risk</th></tr></thead>
-    <tbody id="posTable"></tbody>
-  </table>
+<!-- ═══ RISK EXPLORER ═══ -->
+<div id="sec-risk" class="section">
+  <div class="grid-2">
+    <div class="card">
+      <h3>Protocol × Chain Risk Matrix</h3>
+      <p style="font-size:.82rem;color:var(--muted);margin-bottom:14px">Click any cell to see detailed risk breakdown.</p>
+      <div id="risk-matrix" style="display:grid;grid-template-columns:100px repeat(3,1fr);gap:4px"></div>
+    </div>
+    <div class="card">
+      <h3>Risk Breakdown</h3>
+      <div id="risk-detail" class="risk-detail">
+        <div style="text-align:center;padding:20px;color:var(--muted);font-size:.85rem">Click a cell on the heatmap to see details.</div>
+      </div>
+    </div>
+  </div>
 </div>
 
-<footer>Yield Pilot v0.1.0 &middot; Data is simulated for demo purposes &middot; <a href="#">GitHub</a></footer>
+<!-- ═══ ACTIVITY FEED ═══ -->
+<div id="sec-feed" class="section">
+  <div class="card">
+    <h3>Live Activity</h3>
+    <div class="filter-tabs" id="feed-filters">
+      <button class="filter-tab active" data-filter="all" onclick="filterFeed(this,'all')">All</button>
+      <button class="filter-tab" data-filter="rebalance" onclick="filterFeed(this,'rebalance')">Rebalance</button>
+      <button class="filter-tab" data-filter="yield" onclick="filterFeed(this,'yield')">Yield</button>
+      <button class="filter-tab" data-filter="gas" onclick="filterFeed(this,'gas')">Gas</button>
+      <button class="filter-tab" data-filter="risk" onclick="filterFeed(this,'risk')">Risk</button>
+    </div>
+    <div id="feed-list"></div>
+  </div>
 </div>
+
+</div>
+
+<footer>Yield Pilot v0.2.0 &middot; Interactive Demo &middot; All data simulated &middot; <a href="https://github.com/lucaswright9695/yield-pilot">GitHub</a></footer>
+
+<div class="toast" id="toast"></div>
 
 <script>
-// ── Simulated Data ──────────────────────────────────────────────
-const CHAINS=['Ethereum','Arbitrum','Base'];
-const PROTOCOLS=['Aave','Compound','Yearn'];
-const ASSETS=['USDC','ETH','DAI','WBTC'];
-const RISK_LEVELS=['Low','Medium','High'];
+// ═══ UTILITIES ═══
+const $=id=>document.getElementById(id);
+const rand=(min,max)=>Math.random()*(max-min)+min;
+const fmt=n=>n>=1e6?'$'+(n/1e6).toFixed(1)+'M':n>=1e3?'$'+(n/1e3).toFixed(1)+'K':'$'+n.toFixed(0);
+const fmtPct=n=>n.toFixed(2)+'%';
+let activeChart={};
 
-function rand(min,max){return Math.random()*(max-min)+min}
-function fmt(n,d=2){return n.toFixed(d)}
-function fmtUSD(n){if(n>=1e6)return '$'+(n/1e6).toFixed(1)+'M';if(n>=1e3)return '$'+(n/1e3).toFixed(0)+'K';return '$'+n.toFixed(0)}
-
-// Generate yield history
-const DAYS=30;
-const yieldHistory={aave:[],compound:[],yearn:[]};
-let aaveBase=3.8,compBase=4.1,yearnBase=5.5;
-for(let i=0;i<DAYS;i++){
-  aaveBase+=rand(-0.15,0.18);compBase+=rand(-0.12,0.15);yearnBase+=rand(-0.2,0.22);
-  yieldHistory.aave.push(Math.max(1,aaveBase));
-  yieldHistory.compound.push(Math.max(1,compBase));
-  yieldHistory.yearn.push(Math.max(2,yearnBase));
+function showToast(msg,icon='✓'){
+  const t=$('toast');
+  t.innerHTML=`<span class="toast-icon">${icon}</span>${msg}`;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3000);
 }
 
-// ── Yield History Chart ─────────────────────────────────────────
-const yCtx=document.getElementById('yieldChart').getContext('2d');
-const labels=Array.from({length:DAYS},(_,i)=>`Day ${i+1}`);
-const yieldChart=new Chart(yCtx,{
-  type:'line',
-  data:{
-    labels,
-    datasets:[
-      {label:'Aave',data:yieldHistory.aave,borderColor:'#6366f1',backgroundColor:'rgba(99,102,241,.08)',fill:true,tension:.4,pointRadius:0,borderWidth:2},
-      {label:'Compound',data:yieldHistory.compound,borderColor:'#06b6d4',backgroundColor:'rgba(6,182,212,.06)',fill:true,tension:.4,pointRadius:0,borderWidth:2},
-      {label:'Yearn',data:yieldHistory.yearn,borderColor:'#ec4899',backgroundColor:'rgba(236,72,153,.06)',fill:true,tension:.4,pointRadius:0,borderWidth:2},
-    ]
-  },
-  options:{
-    responsive:true,maintainAspectRatio:false,
-    plugins:{legend:{position:'top',labels:{color:'#94a3b8',usePointStyle:true,pointStyle:'circle',padding:16,font:{size:11}}}},
-    scales:{
-      x:{grid:{color:'rgba(30,41,59,.6)'},ticks:{color:'#94a3b8',font:{size:10},maxTicksLimit:8}},
-      y:{grid:{color:'rgba(30,41,59,.6)'},ticks:{color:'#94a3b8',font:{size:10},callback:v=>v.toFixed(1)+'%'},title:{display:true,text:'APY %',color:'#94a3b8'}}
-    },
-    interaction:{intersect:false,mode:'index'}
-  }
-});
+function showSection(name){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  $('sec-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
 
-// ── Allocation Donut ────────────────────────────────────────────
-const aCtx=document.getElementById('allocChart').getContext('2d');
-new Chart(aCtx,{
-  type:'doughnut',
-  data:{
-    labels:['Aave USDC','Yearn ETH','Compound DAI','Aave ARB USDC','Yearn ARB ETH','Aave Base USDC'],
-    datasets:[{
-      data:[28,22,18,14,10,8],
-      backgroundColor:['#6366f1','#ec4899','#06b6d4','#8b5cf6','#f59e0b','#10b981'],
-      borderColor:'#1a2234',borderWidth:3,hoverOffset:8
-    }]
-  },
-  options:{
-    responsive:true,maintainAspectRatio:false,cutout:'65%',
-    plugins:{legend:{position:'right',labels:{color:'#94a3b8',usePointStyle:true,pointStyle:'circle',padding:10,font:{size:10.5}}}}
-  }
-});
+function toggleBtn(el){
+  el.classList.toggle('on');
+}
 
-// ── Risk Heatmap ────────────────────────────────────────────────
-const riskData=[
-  {proto:'Aave',chain:'Ethereum',risk:0.12},{proto:'Aave',chain:'Arbitrum',risk:0.22},{proto:'Aave',chain:'Base',risk:0.28},
-  {proto:'Compound',chain:'Ethereum',risk:0.18},{proto:'Compound',chain:'Arbitrum',risk:0.30},{proto:'Compound',chain:'Base',risk:0.35},
-  {proto:'Yearn',chain:'Ethereum',risk:0.25},{proto:'Yearn',chain:'Arbitrum',risk:0.32},{proto:'Yearn',chain:'Base',risk:0.42},
-];
-function riskColor(r){if(r<.2)return'rgba(16,185,129,.25)';if(r<.3)return'rgba(245,158,11,.25)';return'rgba(239,68,68,.25)'}
-function riskTextColor(r){if(r<.2)return'#10b981';if(r<.3)return'#f59e0b';return'#ef4444'}
-const hm=document.getElementById('heatmap');
-let hmHTML='<div class="hm-header"></div>';
-CHAINS.forEach(c=>hmHTML+=`<div class="hm-header">${c}</div>`);
-PROTOCOLS.forEach(p=>{
-  hmHTML+=`<div class="hm-label">${p}</div>`;
-  CHAINS.forEach(c=>{
-    const d=riskData.find(r=>r.proto===p&&r.chain===c);
-    const r=d?d.risk:0.5;
-    hmHTML+=`<div class="hm-cell" style="background:${riskColor(r)};color:${riskTextColor(r)}">${(r*100).toFixed(0)}%</div>`;
-  });
-});
-hm.innerHTML=hmHTML;
+function getToggles(id){
+  return [...document.querySelectorAll('#'+id+' .toggle.on')].map(b=>b.dataset.val);
+}
 
-// ── Events ──────────────────────────────────────────────────────
-const eventTypes=[
-  {text:'Rebalanced USDC → Yearn (Ethereum)',color:'#6366f1',chain:'ETH'},
-  {text:'Swapped DAI→USDC on Arbitrum',color:'#06b6d4',chain:'ARB'},
-  {text:'Claimed 2.3 AAVE rewards',color:'#10b981',chain:'ETH'},
-  {text:'Migrated ETH position to Base',color:'#f59e0b',chain:'BASE'},
-  {text:'Gas-optimal batch: 4 txs on Arbitrum',color:'#8b5cf6',chain:'ARB'},
-  {text:'Risk alert: Compound utilization >85%',color:'#ef4444',chain:'ETH'},
-  {text:'APY spike detected: Yearn USDC 7.2%',color:'#ec4899',chain:'ETH'},
-  {text:'Rebalanced WBTC → Aave (Ethereum)',color:'#6366f1',chain:'ETH'},
-  {text:'Auto-compound: 0.8 ETH yield',color:'#10b981',chain:'ARB'},
-  {text:'New vault detected: Aave Base DAI 6.1%',color:'#06b6d4',chain:'BASE'},
-];
-const eList=document.getElementById('eventList');
-function renderEvents(){
-  eList.innerHTML='';
-  const shuffled=[...eventTypes].sort(()=>Math.random()-.5).slice(0,7);
-  shuffled.forEach((e,i)=>{
-    const t=new Date(Date.now()-i*rand(60000,600000));
-    const timeStr=t.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-    eList.innerHTML+=`<li><span><span class="event-dot" style="background:${e.color}"></span>${e.text}</span><span class="event-time">${timeStr}</span></li>`;
+// ═══ BASE DATA ═══
+const PROTOCOLS={
+  aave:{name:'Aave',baseApy:{ethereum:3.8,arbitrum:4.5,base:5.2},tvl:12.4e9,audits:12,age:4,incidents:1},
+  compound:{name:'Compound',baseApy:{ethereum:3.5,arbitrum:4.1,base:4.8},tvl:8.7e9,audits:8,age:5,incidents:2},
+  yearn:{name:'Yearn',baseApy:{ethereum:4.8,arbitrum:5.6,base:6.3},tvl:3.2e9,audits:6,age:3,incidents:3}
+};
+const CHAINS={ethereum:{name:'Ethereum',gasCost:15,color:'#627eea'},arbitrum:{name:'Arbitrum',gasCost:0.3,color:'#28a0f0'},base:{name:'Base',gasCost:0.1,color:'#0052ff'}};
+const RISK_LABELS=['Very Low','Low','Balanced','High','Very High'];
+
+// ═══ STRATEGY BUILDER ═══
+let builderChart=null,builderHistChart=null;
+
+function updateRiskLabel(){
+  const v=$('risk-slider').value;
+  $('risk-val').textContent=RISK_LABELS[v-1];
+}
+
+function runOptimizer(){
+  const btn=$('optimize-btn');
+  btn.classList.add('loading');
+  btn.textContent='Optimizing...';
+  
+  setTimeout(()=>{
+    const protos=getToggles('proto-toggles');
+    const chains=getToggles('chain-toggles');
+    const riskTol=parseInt($('risk-slider').value);
+    const minApy=parseFloat($('min-apy').value);
+    
+    if(!protos.length||!chains.length){
+      showToast('Select at least one protocol and chain.','⚠️');
+      btn.classList.remove('loading');btn.textContent='⚡ Optimize Strategy';
+      return;
+    }
+    
+    // Generate opportunities
+    const opps=[];
+    protos.forEach(p=>{
+      chains.forEach(c=>{
+        const base=PROTOCOLS[p].baseApy[c]||4;
+        const riskMod=(riskTol-3)*0.3;
+        const apy=base+riskMod+rand(-0.2,0.3);
+        const risk=calcRisk(p,c,riskTol);
+        if(apy>=minApy){
+          opps.push({protocol:p,chain:c,apy,risk,score:(apy*1.5-risk*2+rand(0,0.5))});
+        }
+      });
+    });
+    
+    opps.sort((a,b)=>b.score-a.score);
+    const totalScore=opps.reduce((s,o)=>s+Math.max(0,o.score),0);
+    opps.forEach(o=>o.weight=totalScore>0?Math.max(0,o.score)/totalScore*100:100/opps.length);
+    
+    // Display
+    const container=$('builder-result');
+    container.style.textAlign='left';
+    container.innerHTML=opps.map(o=>`
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)">
+        <div>
+          <span style="font-weight:600">${PROTOCOLS[o.protocol].name}</span>
+          <span style="color:var(--muted);font-size:.82rem"> · ${CHAINS[o.chain].name}</span>
+        </div>
+        <div style="text-align:right">
+          <span style="color:var(--green);font-weight:600">${fmtPct(o.apy)}</span>
+          <span style="color:var(--muted);font-size:.78rem;margin-left:8px">${o.weight.toFixed(1)}%</span>
+        </div>
+      </div>
+    `).join('');
+    
+    // Chart
+    $('builder-chart-wrap').style.display='block';
+    if(builderChart)builderChart.destroy();
+    builderChart=new Chart($('builderChart').getContext('2d'),{
+      type:'doughnut',
+      data:{labels:opps.map(o=>PROTOCOLS[o.protocol].name+' '+CHAINS[o.chain].name),datasets:[{data:opps.map(o=>o.weight),backgroundColor:['#6366f1','#8b5cf6','#ec4899','#06b6d4','#10b981','#f59e0b'],borderColor:'#111827',borderWidth:3}]},
+      options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{position:'bottom',labels:{color:'#64748b',padding:10,font:{size:11}}}}}
+    });
+    
+    // Details
+    const totalApy=opps.reduce((s,o)=>s+o.apy*o.weight/100,0);
+    const avgRisk=opps.reduce((s,o)=>s+o.risk*o.weight/100,0);
+    $('builder-details').classList.add('show');
+    $('builder-metrics').innerHTML=`
+      <div class="result-metric"><div class="val">${fmtPct(totalApy)}</div><div class="lbl">Weighted APY</div></div>
+      <div class="result-metric"><div class="val" style="color:${avgRisk<2?'var(--green)':avgRisk<3.5?'var(--yellow)':'var(--red)'}">${avgRisk.toFixed(1)}/5</div><div class="lbl">Risk Score</div></div>
+      <div class="result-metric"><div class="val">${opps.length}</div><div class="lbl">Positions</div></div>
+    `;
+    
+    // Historical sim
+    if(builderHistChart)builderHistChart.destroy();
+    const days=30;const hist=[];let val=100000;
+    for(let i=0;i<days;i++){val*=(1+totalApy/365/100+rand(-0.001,0.002));hist.push(val);}
+    builderHistChart=new Chart($('builderHistChart').getContext('2d'),{
+      type:'line',
+      data:{labels:hist.map((_,i)=>'Day '+(i+1)),datasets:[{data:hist,borderColor:'#6366f1',backgroundColor:'rgba(99,102,241,.08)',fill:true,tension:.4,pointRadius:0,borderWidth:2}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{display:false},y:{grid:{color:'rgba(30,41,59,.5)'},ticks:{color:'#64748b',callback:v=>'$'+(v/1000).toFixed(0)+'K'}}}}
+    });
+    
+    btn.classList.remove('loading');btn.textContent='⚡ Optimize Strategy';
+    showToast('Strategy optimized — '+opps.length+' positions found.');
+  },800);
+}
+
+function calcRisk(proto,chain,riskTol){
+  const p=PROTOCOLS[proto];
+  let r=2.5;
+  if(p.tvl<5e9)r+=0.5;
+  if(p.incidents>1)r+=0.4;
+  if(p.audits<8)r+=0.3;
+  if(chain==='base')r+=0.3;
+  if(chain==='arbitrum')r+=0.1;
+  r-=(riskTol-3)*0.3;
+  return Math.max(1,Math.min(5,r));
+}
+
+// ═══ YIELD SIMULATOR ═══
+let simChart=null;
+const BASE_APYS={aave:{USDC:3.8,ETH:2.1,DAI:3.5,WBTC:1.2},compound:{USDC:3.5,ETH:1.9,DAI:3.2,WBTC:1.0},yearn:{USDC:5.2,ETH:3.4,DAI:4.8,WBTC:2.1}};
+
+function selectAsset(el){
+  el.parentElement.querySelectorAll('.toggle').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+  updateSimulator();
+}
+
+function updateSimulator(){
+  const deposit=parseInt($('deposit-slider').value);
+  const asset=getToggles('asset-toggles')[0]||'USDC';
+  const proto=$('sim-protocol').value;
+  const months=parseInt($('time-slider').value);
+  
+  $('deposit-val').textContent=fmt(deposit);
+  $('time-val').textContent=months+' months';
+  $('sim-months').textContent=months;
+  
+  const apy=BASE_APYS[proto][asset]||4;
+  const monthlyRate=apy/100/12;
+  const totalEarnings=deposit*monthlyRate*months;
+  const monthlyEarnings=deposit*monthlyRate;
+  const dailyEarnings=deposit*apy/100/365;
+  
+  // Animate counter
+  animateValue('sim-total',totalEarnings,'$');
+  animateValue('sim-monthly',monthlyEarnings,'$');
+  animateValue('sim-daily',dailyEarnings,'$');
+  $('sim-apy').textContent=fmtPct(apy);
+  
+  // Chart
+  if(simChart)simChart.destroy();
+  const data=[];let cumulative=deposit;
+  for(let i=0;i<=months;i++){data.push(cumulative);cumulative+=monthlyEarnings;}
+  simChart=new Chart($('simChart').getContext('2d'),{
+    type:'line',
+    data:{labels:data.map((_,i)=>i===0?'Now':i+'mo'),datasets:[
+      {label:'Principal',data:data.map(()=>deposit),borderColor:'rgba(100,116,139,.3)',borderDash:[5,5],borderWidth:1,pointRadius:0,fill:false},
+      {label:'Portfolio Value',data:data,borderColor:'#10b981',backgroundColor:'rgba(16,185,129,.08)',fill:true,tension:.3,pointRadius:0,borderWidth:2}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#64748b',font:{size:11}}}},scales:{x:{grid:{display:false},ticks:{color:'#64748b',maxTicksLimit:6}},y:{grid:{color:'rgba(30,41,59,.5)'},ticks:{color:'#64748b',callback:v=>fmt(v)}}}}
   });
 }
-renderEvents();
-setInterval(renderEvents,8000);
 
-// ── Top Opportunities ───────────────────────────────────────────
-const opps=[
-  {proto:'Yearn',chain:'Arbitrum',asset:'USDC',apy:6.82,tvl:'$312M',risk:'Med'},
-  {proto:'Yearn',chain:'Ethereum',asset:'DAI',apy:5.94,tvl:'$890M',risk:'Low'},
-  {proto:'Aave',chain:'Base',asset:'USDC',apy:5.47,tvl:'$215M',risk:'Med'},
-  {proto:'Compound',chain:'Ethereum',asset:'USDC',apy:4.31,tvl:'$1.2B',risk:'Low'},
-  {proto:'Aave',chain:'Arbitrum',asset:'ETH',apy:3.88,tvl:'$445M',risk:'Low'},
-  {proto:'Yearn',chain:'Arbitrum',asset:'ETH',apy:4.12,tvl:'$178M',risk:'Med'},
-  {proto:'Compound',chain:'Base',asset:'USDC',apy:4.78,tvl:'$98M',risk:'High'},
-];
-const oList=document.getElementById('topOppList');
-opps.forEach(o=>{
-  const riskBadge=o.risk==='Low'?'badge-green':o.risk==='Med'?'badge-yellow':'badge-red';
-  oList.innerHTML+=`<li><span><strong>${o.proto}</strong> · ${o.chain} · ${o.asset} &nbsp;<span class="badge ${riskBadge}">${o.risk}</span></span><span style="color:var(--green);font-weight:600">${o.apy.toFixed(2)}%</span></li>`;
-});
-
-// ── Positions Table ─────────────────────────────────────────────
-const positions=[
-  {proto:'Aave',chain:'Ethereum',asset:'USDC',value:50230,apy:3.92,pnl:230,risk:'Low'},
-  {proto:'Yearn',chain:'Ethereum',asset:'ETH',value:28450,apy:3.45,pnl:1450,risk:'Med'},
-  {proto:'Compound',chain:'Ethereum',asset:'DAI',value:30120,apy:4.08,pnl:120,risk:'Low'},
-  {proto:'Aave',chain:'Arbitrum',asset:'USDC',value:20080,apy:4.61,pnl:80,risk:'Low'},
-  {proto:'Yearn',chain:'Arbitrum',asset:'ETH',value:14200,apy:3.98,pnl:700,risk:'Med'},
-  {proto:'Aave',chain:'Base',asset:'USDC',value:10050,apy:5.32,pnl:50,risk:'Med'},
-  {proto:'Yearn',chain:'Ethereum',asset:'WBTC',value:8600,apy:1.95,pnl:-120,risk:'Med'},
-];
-const chainColors={Ethereum:'#627eea',Arbitrum:'#28a0f0',Base:'#0052ff'};
-const posBody=document.getElementById('posTable');
-positions.forEach(p=>{
-  const riskBadge=p.risk==='Low'?'badge-green':p.risk==='Med'?'badge-yellow':'badge-red';
-  const pnlColor=p.pnl>=0?'var(--green)':'var(--red)';
-  const pnlSign=p.pnl>=0?'+':'';
-  posBody.innerHTML+=`<tr>
-    <td>${p.proto}</td>
-    <td><span class="chain-dot" style="background:${chainColors[p.chain]}"></span>${p.chain}</td>
-    <td>${p.asset}</td>
-    <td>${fmtUSD(p.value)}</td>
-    <td>${p.apy.toFixed(2)}%</td>
-    <td style="color:${pnlColor}">${pnlSign}$${Math.abs(p.pnl).toLocaleString()}</td>
-    <td><span class="badge ${riskBadge}">${p.risk}</span></td>
-  </tr>`;
-});
-
-// ── Live Metric Updates ─────────────────────────────────────────
-let tvl=247.3,apy=5.82,gasSaved=12847,rebalances=38;
-setInterval(()=>{
-  tvl+=rand(-0.5,0.6);apy+=rand(-0.03,0.035);gasSaved+=rand(0,15);rebalances+=Math.random()>.7?1:0;
-  document.getElementById('m-tvl').textContent='$'+tvl.toFixed(1)+'M';
-  document.getElementById('m-apy').textContent=apy.toFixed(2)+'%';
-  document.getElementById('m-gas').textContent='$'+Math.round(gasSaved).toLocaleString();
-  document.getElementById('m-rebal').textContent=rebalances;
-
-  const tvlCh=rand(-0.5,0.8);const apyCh=rand(-0.05,0.06);
-  const tvlEl=document.getElementById('m-tvl-ch');tvlEl.textContent=(tvlCh>=0?'+':'')+tvlCh.toFixed(1)+'% 24h';tvlEl.className='change '+(tvlCh>=0?'up':'down');
-  const apyEl=document.getElementById('m-apy-ch');apyEl.textContent=(apyCh>=0?'+':'')+apyCh.toFixed(2)+'% today';apyEl.className='change '+(apyCh>=0?'up':'down');
-},3000);
-
-// Push new data points to yield chart periodically
-setInterval(()=>{
-  aaveBase+=rand(-0.12,0.15);compBase+=rand(-0.1,0.12);yearnBase+=rand(-0.15,0.18);
-  yieldChart.data.datasets[0].data.push(Math.max(1,aaveBase));
-  yieldChart.data.datasets[1].data.push(Math.max(1,compBase));
-  yieldChart.data.datasets[2].data.push(Math.max(2,yearnBase));
-  yieldChart.data.labels.push('');
-  if(yieldChart.data.labels.length>60){
-    yieldChart.data.labels.shift();
-    yieldChart.data.datasets.forEach(d=>d.data.shift());
+function animateValue(id,target,prefix=''){
+  const el=$(id);
+  const start=parseFloat(el.textContent.replace(/[$,K,M%]/g,''))||0;
+  const duration=500;const startTime=Date.now();
+  function step(){
+    const elapsed=Date.now()-startTime;
+    const progress=Math.min(elapsed/duration,1);
+    const eased=1-Math.pow(1-progress,3);
+    const current=start+(target-start)*eased;
+    el.textContent=prefix+current.toFixed(current>1000?0:2);
+    if(progress<1)requestAnimationFrame(step);
+    else el.textContent=prefix+(target>1000?(target/1000).toFixed(1)+'K':target.toFixed(2));
   }
-  yieldChart.update('none');
-},5000);
+  requestAnimationFrame(step);
+}
+
+// ═══ REBALANCE PLAYGROUND ═══
+let currentAllocChart=null,beforeChart=null,afterChart=null;
+
+function initRebalance(){
+  const ctx=$('currentAllocChart').getContext('2d');
+  currentAllocChart=new Chart(ctx,{
+    type:'doughnut',
+    data:{labels:['Aave ETH','Yearn USDC','Compound DAI','Aave ARB','Yearn Base'],datasets:[{data:[30,25,20,15,10],backgroundColor:['#6366f1','#ec4899','#06b6d4','#8b5cf6','#10b981'],borderColor:'#111827',borderWidth:3}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{position:'bottom',labels:{color:'#64748b',padding:8,font:{size:10}}}}}
+  });
+}
+
+function updateAlloc(){
+  const rows=document.querySelectorAll('#sec-rebalance .alloc-row');
+  let vals=[];
+  rows.forEach(r=>{
+    const input=r.querySelector('input');
+    const span=r.querySelector('.val');
+    span.textContent=input.value+'%';
+    vals.push(parseInt(input.value));
+  });
+  // Normalize
+  const total=vals.reduce((s,v)=>s+v,0);
+  if(total>0&&currentAllocChart){
+    currentAllocChart.data.datasets[0].data=vals.map(v=>v/total*100);
+    currentAllocChart.update('none');
+  }
+}
+
+function simulateRebalance(){
+  const rows=document.querySelectorAll('#sec-rebalance .alloc-row');
+  const labels=['Aave ETH','Yearn USDC','Compound DAI','Aave ARB','Yearn Base'];
+  let before=[30,25,20,15,10];
+  let after=[];
+  rows.forEach(r=>after.push(parseInt(r.querySelector('input').value)));
+  const total=after.reduce((s,v)=>s+v,0);
+  after=after.map(v=>total>0?v/total*100:20);
+  
+  // Show result
+  $('rebalance-result').classList.add('show');
+  
+  // Before chart
+  if(beforeChart)beforeChart.destroy();
+  beforeChart=new Chart($('beforeChart').getContext('2d'),{
+    type:'doughnut',data:{labels,datasets:[{data:before,backgroundColor:['#6366f1','#ec4899','#06b6d4','#8b5cf6','#10b981'],borderColor:'#111827',borderWidth:3}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'55%',plugins:{legend:{display:false}}}
+  });
+  
+  // After chart
+  if(afterChart)afterChart.destroy();
+  afterChart=new Chart($('afterChart').getContext('2d'),{
+    type:'doughnut',data:{labels,datasets:[{data:after,backgroundColor:['#6366f1','#ec4899','#06b6d4','#8b5cf6','#10b981'],borderColor:'#111827',borderWidth:3}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'55%',plugins:{legend:{display:false}}}
+  });
+  
+  // Metrics
+  const gasCost=rand(2,18).toFixed(2);
+  const slippage=rand(0.01,0.15).toFixed(3);
+  const changedPositions=before.filter((b,i)=>Math.abs(b-after[i])>1).length;
+  $('rebal-metrics').innerHTML=`
+    <div class="result-metric"><div class="val" style="color:var(--cyan)">$${gasCost}</div><div class="lbl">Est. Gas Cost</div></div>
+    <div class="result-metric"><div class="val">${slippage}%</div><div class="lbl">Est. Slippage</div></div>
+    <div class="result-metric"><div class="val">${changedPositions}</div><div class="lbl">Positions Changed</div></div>
+  `;
+  showToast('Rebalance simulated — '+changedPositions+' positions affected.');
+}
+
+// ═══ RISK EXPLORER ═══
+function buildRiskMatrix(){
+  const matrix=$('risk-matrix');
+  const protocols=['Aave','Compound','Yearn'];
+  const chains=['Ethereum','Arbitrum','Base'];
+  const riskValues=[[12,22,28],[18,30,35],[25,32,42]];
+  
+  let html='<div></div>';
+  chains.forEach(c=>html+=`<div style="text-align:center;font-size:.72rem;text-transform:uppercase;color:var(--muted);padding:8px">${c}</div>`);
+  protocols.forEach((p,pi)=>{
+    html+=`<div style="display:flex;align-items:center;font-size:.82rem;font-weight:500;padding:10px 8px">${p}</div>`;
+    chains.forEach((_,ci)=>{
+      const r=riskValues[pi][ci];
+      const color=r<20?'rgba(16,185,129,.25)':r<30?'rgba(245,158,11,.25)':'rgba(239,68,68,.25)';
+      const textColor=r<20?'#10b981':r<30?'#f59e0b':'#ef4444';
+      html+=`<div style="background:${color};color:${textColor};border-radius:8px;padding:12px;text-align:center;font-weight:600;font-size:.82rem;cursor:pointer;transition:transform .2s" onclick="showRiskDetail('${protocols[pi].toLowerCase()}','${chains[ci].toLowerCase()}',${r})" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">${r}%</div>`;
+    });
+  });
+  matrix.innerHTML=html;
+}
+
+function showRiskDetail(proto,chain,riskScore){
+  const p=PROTOCOLS[proto];
+  const detail=$('risk-detail');
+  const riskColor=riskScore<20?'var(--green)':riskScore<30?'var(--yellow)':'var(--red)';
+  
+  const tvlScore=Math.min(100,Math.round(p.tvl/15e9*100));
+  const auditScore=Math.min(100,p.audits*8);
+  const ageScore=Math.min(100,p.age*20);
+  const incidentScore=Math.max(0,100-p.incidents*25);
+  
+  detail.innerHTML=`
+    <div style="font-weight:600;font-size:1rem;margin-bottom:4px">${p.name} on ${CHAINS[chain].name}</div>
+    <div style="font-size:2rem;font-weight:800;color:${riskColor};margin:8px 0">${riskScore}% <span style="font-size:.8rem;color:var(--muted)">risk score</span></div>
+    
+    <div style="margin-top:16px">
+      <div style="display:flex;justify-content:space-between;font-size:.82rem;margin-bottom:2px"><span>TVL Strength</span><span>${tvlScore}%</span></div>
+      <div class="risk-bar"><div class="risk-bar-fill" style="width:${tvlScore}%;background:var(--green)"></div></div>
+    </div>
+    <div style="margin-top:10px">
+      <div style="display:flex;justify-content:space-between;font-size:.82rem;margin-bottom:2px"><span>Audit Coverage</span><span>${auditScore}%</span></div>
+      <div class="risk-bar"><div class="risk-bar-fill" style="width:${auditScore}%;background:var(--cyan)"></div></div>
+    </div>
+    <div style="margin-top:10px">
+      <div style="display:flex;justify-content:space-between;font-size:.82rem;margin-bottom:2px"><span>Protocol Maturity</span><span>${ageScore}%</span></div>
+      <div class="risk-bar"><div class="risk-bar-fill" style="width:${ageScore}%;background:var(--accent)"></div></div>
+    </div>
+    <div style="margin-top:10px">
+      <div style="display:flex;justify-content:space-between;font-size:.82rem;margin-bottom:2px"><span>Incident History</span><span>${incidentScore}%</span></div>
+      <div class="risk-bar"><div class="risk-bar-fill" style="width:${incidentScore}%;background:${p.incidents>1?'var(--yellow)':'var(--green)'}"></div></div>
+    </div>
+    
+    <div style="margin-top:16px;padding:12px;background:rgba(99,102,241,.05);border-radius:8px;font-size:.78rem;color:var(--muted);line-height:1.6">
+      <strong style="color:var(--text)">Assessment:</strong> ${p.name} on ${CHAINS[chain].name} has a ${riskScore<20?'low':riskScore<30?'moderate':'elevated'} risk profile.
+      ${p.tvl>10e9?'TVL of $'+(p.tvl/1e9).toFixed(1)+'B provides strong liquidity depth.':''}
+      ${p.incidents>1?'Note: '+p.incidents+' past incidents recorded — monitor closely.':'Clean incident history — no major exploits recorded.'}
+      ${p.audits>=10?'Comprehensive audit coverage with '+p.audits+' completed audits.':'Consider additional audit coverage before large deposits.'}
+    </div>
+  `;
+  detail.classList.add('show');
+}
+
+// ═══ ACTIVITY FEED ═══
+const FEED_EVENTS=[
+  {type:'rebalance',text:'Rebalanced USDC → Yearn (Ethereum)',detail:'Moved $45K USDC from Aave to Yearn for +1.4% APY improvement. Gas: $12.40 on Ethereum.',color:'#6366f1'},
+  {type:'rebalance',text:'Swapped DAI→USDC on Arbitrum',detail:'Converted 28K DAI to USDC via Curve pool. Slippage: 0.03%. Gas: $0.28.',color:'#06b6d4'},
+  {type:'yield',text:'APY spike detected: Yearn USDC 7.2%',detail:'Yearn USDC vault APY jumped from 5.1% to 7.2% due to increased Curve rewards. Auto-compounding enabled.',color:'#ec4899'},
+  {type:'yield',text:'Claimed 2.3 AAVE rewards',detail:'Staking rewards claimed and swapped to USDC. Value: $184.50.',color:'#10b981'},
+  {type:'gas',text:'Gas-optimal batch: 4 txs on Arbitrum',detail:'Batched 4 rebalance transactions into single multicall. Saved $14.20 vs individual Ethereum transactions.',color:'#8b5cf6'},
+  {type:'gas',text:'L2 migration: ETH position to Base',detail:'Migrated $12K ETH position from Ethereum to Base. Bridge cost: $3.40. Annual gas savings est: $89.',color:'#f59e0b'},
+  {type:'risk',text:'Risk alert: Compound utilization >85%',detail:'Compound USDC market utilization at 87%. Withdrawal may be delayed. Monitoring for rebalance opportunity.',color:'#ef4444'},
+  {type:'risk',text:'New vault detected: Aave Base DAI 6.1%',detail:'Aave Base DAI pool showing 6.1% APY with low utilization. Risk score: 28%. Adding to opportunity watchlist.',color:'#06b6d4'},
+  {type:'rebalance',text:'Auto-compound: 0.8 ETH yield',detail:'Harvested yield auto-compounded back into Yearn ETH vault. New position: 12.8 ETH.',color:'#10b981'},
+  {type:'yield',text:'WBTC yield dropped to 0.9%',detail:'Aave WBTC supply APY decreased from 1.2% to 0.9% due to reduced borrowing demand. Consider reallocating.',color:'#f59e0b'},
+];
+
+let currentFilter='all';
+let feedChart=null;
+
+function renderFeed(filter='all'){
+  currentFilter=filter;
+  const list=$('feed-list');
+  const events=filter==='all'?FEED_EVENTS:FEED_EVENTS.filter(e=>e.type===filter);
+  
+  list.innerHTML=events.map((e,i)=>{
+    const time=new Date(Date.now()-i*rand(120000,900000));
+    const timeStr=time.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+    return `
+      <div class="event-item" onclick="toggleEventDetail(this)">
+        <span><span class="event-dot" style="background:${e.color}"></span>${e.text}</span>
+        <span class="event-time">${timeStr}</span>
+      </div>
+      <div class="event-detail">${e.detail}</div>
+    `;
+  }).join('');
+}
+
+function filterFeed(el,filter){
+  document.querySelectorAll('.filter-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  renderFeed(filter);
+}
+
+function toggleEventDetail(el){
+  const detail=el.nextElementSibling;
+  detail.classList.toggle('show');
+}
+
+// ═══ INIT ═══
+updateSimulator();
+buildRiskMatrix();
+renderFeed();
+initRebalance();
+
+// Auto-update feed every 10s
+setInterval(()=>{
+  if($('sec-feed').classList.contains('active')){
+    // Shuffle times
+    document.querySelectorAll('.event-time').forEach(el=>{
+      const t=new Date(Date.now()-rand(60000,1200000));
+      el.textContent=t.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+    });
+  }
+},10000);
 </script>
 </body>
 </html>
